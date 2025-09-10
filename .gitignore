@@ -1,0 +1,39 @@
+# LaTeX intermediate files
+*.asv
+*.aux
+*.bbl
+*.blg
+*.brf
+*.idx
+*.ilg
+*.ind
+*.lof
+*.log
+*.lot
+*.out
+*.toc
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+*.nav
+*.snm
+*.vrb
+*.zip
+
+# Generated PDFs (keep only the main one if needed)
+mox.pdf
+other_docs/*
+
+# Backup files
+*~
+*.bak
+*.backup
+*.sav
+
+# MacOS / Windows system files
+.DS_Store
+Thumbs.db
+
+# Editor-specific files
+*.swp
+*.swo
