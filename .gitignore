@@ -19,6 +19,7 @@
 *.snm
 *.vrb
 *.zip
+*.xlsx
 
 # Generated PDFs (keep only the main one if needed)
 mox.pdf

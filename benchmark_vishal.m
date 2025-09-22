@@ -1,7 +1,8 @@
 close all;
 % clear all;
 clearvars -except filename m p q w_amp n_random_seeds n_repetitions CV d_XY ...
-    eps_x eps_y d_X d_XY d_Y d idx_X idx_XY idx_Y iex iey
+    eps_x eps_y d_X d_XY d_Y d idx_X idx_XY idx_Y iex iey im iq ip ...
+    m_vec p_vec q_vec
 
 %load dataset_tecator.mat
 %load dataset_corn.mat
@@ -42,7 +43,10 @@ ini_opt        = 1;
 % idx_Y  = d_X + d_XY + (1:d_Y);
 
 % Set the maximum number of components based on the formula
-max_components = min(p, q);
+max_components  = min(p, q);
+%max_components = min(d_X(iex)+d_XY, d_Y(iey)+d_XY);
+%max_components = max(d_X(iex)+d_XY, d_Y(iey)+d_XY);
+%max_components = d_Y(iey)+d_XY;
 
 % Preallocate arrays to store MSEs and other metrics
 MSEmox_all      = zeros(n_random_seeds, max_components);
@@ -99,11 +103,15 @@ for seed = 1:n_random_seeds
     end
     
     % --- MOX Regression ---
-    MSEmox = zeros(max_components, 1);
+    MSEmox      = zeros(max_components, 1);
     MSEmox_kisl = zeros(max_components, 1);
+		r           = min(p,q); % added if p<q, r=p, otherwise r=q
     for l = 1:max_components
 	    [~, ~, ~, ~, ~, ~, ~, MSEcv, Fmaxcv, ~, ~, ~] = moxregress(X, Y, ...
-            q, l, 'CV', CV, 'MCReps', n_repetitions);
+            r, l, 'CV', CV, 'MCReps', n_repetitions);
+            %q, l, 'CV', CV, 'MCReps', n_repetitions);
+            %max(d_X(iex)+d_XY, d_Y(iey)+d_XY), l, 'CV', CV, 'MCReps', n_repetitions);
+            %d_X(iex)+d_XY, l, 'CV', CV, 'MCReps', n_repetitions);
         %MSEmox(l) = MSEcv;
         MSEmox(l) = MSEcv/q;
 	    [~, ~, ~, ~, ~, ~, ~, MSEcv, Fmaxcv, ~, ~, ~] = moxregress(X, Y, ...
@@ -111,7 +119,7 @@ for seed = 1:n_random_seeds
         MSEmox_kisl(l) = MSEcv / q;
     end
     % Store results
-    MSEmox_all(seed, :) = MSEmox';
+    MSEmox_all(seed, :)      = MSEmox';
     MSEmox_kisl_all(seed, :) = MSEmox_kisl';
 
     % --- PLS Regression ---
@@ -196,16 +204,17 @@ for seed = 1:n_random_seeds
     end
     % Store results
     MSEcca_all(seed, :) = MSEcca';
-
-    fprintf('i_repetition_seed:  %2d \n', seed);
+		if mod(seed,5) == 0
+			fprintf('i_repetition_seed:  %4d \n', seed);
+		end
 end
 
 % Compute mean MSEs across all random seeds
-MSEmox_mean = mean(MSEmox_all, 1);
+MSEmox_mean			 = mean(MSEmox_all, 1);
 MSEmox_kisl_mean = mean(MSEmox_kisl_all, 1);
-MSEpls_mean = mean(MSEpls_all, 1);
-MSEcca_mean = mean(MSEcca_all, 1);
-MSEols_mean = mean(MSEols_all);
+MSEpls_mean      = mean(MSEpls_all, 1);
+MSEcca_mean      = mean(MSEcca_all, 1);
+MSEols_mean      = mean(MSEols_all);
 
 % % Compute standard deviations if desired
 % MSEmox_std = std(MSEmox_all, 0, 1);
