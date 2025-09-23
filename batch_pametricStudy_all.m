@@ -9,9 +9,9 @@ d_Y    = eps_y*d_XY;         % co-varying dimensions in Y only
 
 % based on k<=min(p,q). q is set according to it. For p two cases [p>p, p=q].
 % The third case: p<q will violate k<min(p,q).
-q_vec = [34];         % d_X+d_XY; % features in responses (multivariate output array)
-p_vec = [20];         % features in predictor (multivariate input array)
-m_vec = [1,2,4]*40;   % no. of observations
+q_vec = [20];         % d_X+d_XY; % features in responses (multivariate output array)
+p_vec = [20, 40, 80]; % features in predictor (multivariate input array)
+m_vec = [1,2]*40;     % no. of observations
 w_amp = 0.5;          % noise level
 
 % standard: [20, 50, 10]
