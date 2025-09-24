@@ -11,7 +11,7 @@ d_Y    = eps_y*d_XY;         % co-varying dimensions in Y only
 % The third case: p<q will violate k<min(p,q).
 q_vec = [20];         % d_X+d_XY; % features in responses (multivariate output array)
 p_vec = [20, 40, 80]; % features in predictor (multivariate input array)
-m_vec = [1,2]*40;     % no. of observations
+m_vec = [1]*40;     % no. of observations
 w_amp = 0.5;          % noise level
 
 % standard: [20, 50, 10]

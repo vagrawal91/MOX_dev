@@ -1,52 +1,15 @@
 close all;
-% clear all;
 clearvars -except filename m p q w_amp n_random_seeds n_repetitions CV d_XY ...
     eps_x eps_y d_X d_XY d_Y d idx_X idx_XY idx_Y iex iey im iq ip ...
     m_vec p_vec q_vec
 
-%load dataset_tecator.mat
-%load dataset_corn.mat
-
-%--- This block for real dataset
-%load ../../modes/analysis/modes_kvarnsveden64.mat
-%load('/Users/vishalagrawal/DriveD/mox_sim/sim_dimsame/data/milldata_kvarnsveden64.mat')
-%idxX = [1 2 3 4 5 6 7 9 10 12 13 15 16]; % 8 11 14 and 17 excluded
-%idxX = [1 5 6 7 8 9 10 11 12 13 14 15 16 17]; %v 2 3 and excluded
-%idxY = [1 2 3 4 5 6 7 8]; % 9 excluded
-%X = X2z(:,idxX);
-%Y = X3z(:,idxY);
-% Number of samples (m), predictor variables (p) and response variables (q)
-%[m, p] = size(X);
-%q      = size(Y, 2);
-
-%--- This block for simulated dataset
-%v added. Original [40, 20, 10]
-% Input parameter set 1
-% m              = 80;   % no. of observations
-% p              = 40;   % features in predictor (multivariate input array)
-% q              = 20;   % features in responses (multivariate output array)
-% w_amp          = 0.5;  % noise level
+% Choose how X and Y are constructed. 1: in terms of Lambda, 2: Intutive
 ini_opt        = 1;
-% % Input parameter set 2
-% % standard: [20, 50, 10]
-% n_random_seeds = 20;
-% n_repetitions  = 50;  % Number of Monte Carlo repetitions over CV
-% CV             = 10;  % 10-folsd cross-validation
-% 
-% % Latent variable information
-% d_X    = 3;                % co-varying dimensions in X only
-% d_XY   = 3;                % co-varying dimensions shared by X and Y
-% d_Y    = 3;                % co-varying dimensions in Y only
-% d      = d_X + d_XY + d_Y; % total dimensionality of fluctuations
-% idx_X  = (1:d_X);
-% idx_XY = d_X + (1:d_XY);
-% idx_Y  = d_X + d_XY + (1:d_Y);
 
 % Set the maximum number of components based on the formula
-max_components  = min(p, q);
-%max_components = min(d_X(iex)+d_XY, d_Y(iey)+d_XY);
-%max_components = max(d_X(iex)+d_XY, d_Y(iey)+d_XY);
+%max_components = min(p, q);
 %max_components = d_Y(iey)+d_XY;
+max_components  = min(d_X(iex)+d_XY, d_Y(iey)+d_XY);
 
 % Preallocate arrays to store MSEs and other metrics
 MSEmox_all      = zeros(n_random_seeds, max_components);
@@ -105,14 +68,11 @@ for seed = 1:n_random_seeds
     % --- MOX Regression ---
     MSEmox      = zeros(max_components, 1);
     MSEmox_kisl = zeros(max_components, 1);
-		r           = min(p,q); % added if p<q, r=p, otherwise r=q
+		%r          = min(p,q); % added if p<q, r=p, otherwise r=q
+		r           = d_X(iex)+d_XY 
     for l = 1:max_components
 	    [~, ~, ~, ~, ~, ~, ~, MSEcv, Fmaxcv, ~, ~, ~] = moxregress(X, Y, ...
             r, l, 'CV', CV, 'MCReps', n_repetitions);
-            %q, l, 'CV', CV, 'MCReps', n_repetitions);
-            %max(d_X(iex)+d_XY, d_Y(iey)+d_XY), l, 'CV', CV, 'MCReps', n_repetitions);
-            %d_X(iex)+d_XY, l, 'CV', CV, 'MCReps', n_repetitions);
-        %MSEmox(l) = MSEcv;
         MSEmox(l) = MSEcv/q;
 	    [~, ~, ~, ~, ~, ~, ~, MSEcv, Fmaxcv, ~, ~, ~] = moxregress(X, Y, ...
             l, l, 'CV', CV, 'MCReps', n_repetitions);
