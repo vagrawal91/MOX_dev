@@ -7,9 +7,9 @@ clearvars -except filename m p q w_amp n_random_seeds n_repetitions CV d_XY ...
 ini_opt        = 1;
 
 % Set the maximum number of components based on the formula
-%max_components = min(p, q);
+max_components = min(p, q);
 %max_components = d_Y(iey)+d_XY;
-max_components  = min(d_X(iex)+d_XY, d_Y(iey)+d_XY);
+%max_components  = max(d_X(iex)+d_XY, d_Y(iey)+d_XY);
 
 % Preallocate arrays to store MSEs and other metrics
 MSEmox_all      = zeros(n_random_seeds, max_components);
@@ -68,15 +68,15 @@ for seed = 1:n_random_seeds
     % --- MOX Regression ---
     MSEmox      = zeros(max_components, 1);
     MSEmox_kisl = zeros(max_components, 1);
-		%r          = min(p,q); % added if p<q, r=p, otherwise r=q
-		r           = d_X(iex)+d_XY 
-    for l = 1:max_components
+    for h = 1:max_components
+        k               = max(h,d_X(iex)+d_XY);
+        l               = max(h,d_Y(iey)+d_XY);
 	    [~, ~, ~, ~, ~, ~, ~, MSEcv, Fmaxcv, ~, ~, ~] = moxregress(X, Y, ...
-            r, l, 'CV', CV, 'MCReps', n_repetitions);
-        MSEmox(l) = MSEcv/q;
-	    [~, ~, ~, ~, ~, ~, ~, MSEcv, Fmaxcv, ~, ~, ~] = moxregress(X, Y, ...
-            l, l, 'CV', CV, 'MCReps', n_repetitions);
-        MSEmox_kisl(l) = MSEcv / q;
+            k, l, h, 'CV', CV, 'MCReps', n_repetitions);
+        MSEmox(h) = MSEcv/q;
+        [~, ~, ~, ~, ~, ~, ~, MSEcv, Fmaxcv, ~, ~, ~] = moxregress(X, Y, ...
+            h, h, h, 'CV', CV, 'MCReps', n_repetitions);
+        MSEmox_kisl(h) = MSEcv / q;
     end
     % Store results
     MSEmox_all(seed, :)      = MSEmox';

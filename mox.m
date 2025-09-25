@@ -1,4 +1,4 @@
-function [P, D, Q, muX, muY, E, Fmax, A, B, W] = mox(X, Y, k, l)
+function [P, D, Q, muX, muY, E, Fmax, A, B, W] = mox(X, Y, k, l, h)
 % MOX Perform Multivariate Orthogonal Cross-covariance (MOX) Regression.
 %
 %   This function performs MOX regression, which identifies latent variables 
@@ -45,47 +45,50 @@ function [P, D, Q, muX, muY, E, Fmax, A, B, W] = mox(X, Y, k, l)
 
   % Check if the number of latent variables l is valid
   if (k > min(p,q))
-    error('Violated k <= min(p,q).');
+    error('Error: Violated k <= min(p,q).');
   end
   if (l > k)
-    error('Violated l <= k.');
+    error('Error: Violated l <= k.');
   end
+	if (h > l)
+    error('Error: Violated h <= l.');
+  end
+
 
   % Center the predictor matrix X
   muX = mean(X);           % Mean of predictors
-  X = X - ones(m, 1)*muX;  % Center predictors
+  X   = X - ones(m, 1)*muX;  % Center predictors
 
   % Center the response matrix Y
   muY = mean(Y);           % Mean of responses
-  Y = Y - ones(m, 1)*muY;  % Center responses
+  Y   = Y - ones(m, 1)*muY;  % Center responses
 
   % Cross-covariance matrix between centered X and Y
   SigmaXY = X' * Y;
 
   % Singular Value Decomposition of the cross-covariance matrix
   [U, S, V] = svd(SigmaXY, 'econ');
-  A = U(:, 1:k);  % First k left singular vectors (predictors)
-  B = V(:, 1:l);  % First l right singular vectors (responses)
-  s = diag(S);    % Singular values from SVD
-  Fmax = sum(s(1:l));  % Maximum value of the objective function
+  A         = U(:, 1:k);  % First k left singular vectors (predictors)
+  B         = V(:, 1:l);  % First l right singular vectors (responses)
+  s         = diag(S);    % Singular values from SVD
+  Fmax      = sum(s(1:min(k,l)));  % Maximum value of the objective function
 
   % Latent variables for predictors and responses
   T = X * A;  % Latent variables for X (T) %v [mxp] [pxk]
-  R = Y * B;  % Latent variables for Y (R) %v 
+  R = Y * B;  % Latent variables for Y (R) %v [mxq] [qxl]
 
   % Regression matrix for latent variables and residual calculation
-  W = pinv(T' * T) * T' * R;  % Solve T*W ≈ R using pseudoinverse
-  e = R - T * W;  % Residuals (Y approximation error)
+  W = pinv(T' * T) * T' * R;  % Solve T*W ≈ R using pseudoinverse %v [kxl]
+  e = R - T * W;  % Residuals (Y approximation error) % 
 
   % Singular Value Decomposition of the regression matrix W
   [Mp, Dp, N] = svd(W);
-  M = Mp(:,1:l);
-  D = Dp(1:l,:);
-  
+  M           = Mp(:,1:h);         %v [kxh]
+  D           = Dp(1:h,1:h);       %v []
+  N           = N(:,1:h);          %v []
+
   % Adjust orthogonal transformations for final projections
-  P = A * M;  % Final projection matrix for predictors    %v [pxh] <- [pxk][kxh], Actually M is [kxk] but M = M(:,1:h), as more h rows are zeros in D
-  Q = B * N;  % Final projection matrix for responses     %v [qxh]
-  E = e * N;  % Transformed residuals                     %v [mxh]
-
+  P = A * M;  % Final projection matrix for predictors    %v [pxk][kxh]
+  Q = B * N;  % Final projection matrix for responses     %v [qxl][lxh]
+  E = e * N;  % Transformed residuals                     %v []
 end
-

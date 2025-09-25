@@ -2,8 +2,8 @@ clc; clear all; close all;
 
 % Latent variable information
 d_XY   = 2;                  % co-varying dimensions shared by X and Y
-eps_x  = [8, 4, 2, 1, 0];
 eps_y  = [8, 4, 2, 1, 0];
+eps_x  = [8, 4, 2, 1, 0];
 d_X    = eps_x*d_XY;         % co-varying dimensions in X only
 d_Y    = eps_y*d_XY;         % co-varying dimensions in Y only
 
@@ -11,7 +11,7 @@ d_Y    = eps_y*d_XY;         % co-varying dimensions in Y only
 % The third case: p<q will violate k<min(p,q).
 q_vec = [20];         % d_X+d_XY; % features in responses (multivariate output array)
 p_vec = [20, 40, 80]; % features in predictor (multivariate input array)
-m_vec = [1]*40;     % no. of observations
+m_vec = [1]*40;       % no. of observations
 w_amp = 0.5;          % noise level
 
 % standard: [20, 50, 10]

@@ -1,4 +1,4 @@
-function [P, D, Q, muX, muY, E, Fmax, MSEcv, Fmaxcv, A, B, W] = moxregress(X, Y, k, l, varargin)
+function [P, D, Q, muX, muY, E, Fmax, MSEcv, Fmaxcv, A, B, W] = moxregress(X, Y, k, l, h, varargin)
 % MOXREGRESS Perform MOX regression with optional cross-validation and multiple restarts.
 %
 %   [P, D, Q, muX, muY, E, Fmax, MSEcv, Fmaxcv, A, B, W] = moxregress(X, Y, k, l, 'CV', j, 'MCReps', n)
@@ -67,11 +67,11 @@ for rep = 1:MCReps
     % Loop over cross-validation folds
     for fold = 1:cvp.NumTestSets
         trainIdx = training(cvp, fold);  % Training indices
-        testIdx = test(cvp, fold);       % Test indices
+        testIdx  = test(cvp, fold);      % Test indices
         
         % Perform MOX on training data
         [P_train, D_train, Q_train, muX_train, muY_train, ~, ~, A_train, ...
-            B_train, W_train] = mox(X(trainIdx, :), Y(trainIdx, :), k, l);
+            B_train, W_train] = mox(X(trainIdx, :), Y(trainIdx, :), k, l, h);
         
         % Center the test data using the means from the training set
         X_test = X(testIdx, :) - muX_train;
@@ -82,16 +82,16 @@ for rep = 1:MCReps
         
         % Compute residuals for test data and MSE
         residuals = Y_test - Y_pred;
-        mse_fold = mean(residuals(:).^2);
-        mse_sum = mse_sum + mse_fold;
+        mse_fold  = mean(residuals(:).^2);
+        mse_sum   = mse_sum + mse_fold;
         
         % Calculate cross-covariance for test data
         Sigma_test = X_test' * Y_test;
 
         % Compute Fmax for the test set
-        s_fold = diag(A_train'*Sigma_test*B_train);  % Sum of the first l singular values for the test data
-	Fmax_fold = sum(s_fold(1:min(k,l)));
-        fmax_sum = fmax_sum + Fmax_fold;
+        s_fold    = diag(A_train'*Sigma_test*B_train);  % Sum of the first l singular values for the test data
+				Fmax_fold = sum(s_fold(1:min(k,l)));
+        fmax_sum  = fmax_sum + Fmax_fold;
     end
     
     % Average MSE and Fmax over all folds
@@ -104,5 +104,5 @@ MSEcv = mean(MSEcv);  % Average over MCReps
 Fmaxcv = mean(Fmaxcv);  % Average over MCReps
 
 % Perform final MOX on the entire dataset
-[P, D, Q, muX, muY, E, Fmax, A, B, W] = mox(X, Y, k, l);
+[P, D, Q, muX, muY, E, Fmax, A, B, W] = mox(X, Y, k, l, h);
 end
