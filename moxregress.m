@@ -90,7 +90,7 @@ for rep = 1:MCReps
 
         % Compute Fmax for the test set
         s_fold    = diag(A_train'*Sigma_test*B_train);  % Sum of the first l singular values for the test data
-				Fmax_fold = sum(s_fold(1:min(k,l)));
+				Fmax_fold = sum(s_fold(1:min(k,h)));
         fmax_sum  = fmax_sum + Fmax_fold;
     end
     

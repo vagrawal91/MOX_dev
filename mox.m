@@ -47,12 +47,12 @@ function [P, D, Q, muX, muY, E, Fmax, A, B, W] = mox(X, Y, k, l, h)
   if (k > min(p,q))
     error('Error: Violated k <= min(p,q).');
   end
-  if (l > k)
-    error('Error: Violated l <= k.');
-  end
-	if (h > l)
-    error('Error: Violated h <= l.');
-  end
+  %if (l > k)
+  %  error('Error: Violated l <= k.');
+  %end
+	%if (h > l)
+  %  error('Error: Violated h <= l.');
+  %end
 
 
   % Center the predictor matrix X
@@ -71,7 +71,7 @@ function [P, D, Q, muX, muY, E, Fmax, A, B, W] = mox(X, Y, k, l, h)
   A         = U(:, 1:k);  % First k left singular vectors (predictors)
   B         = V(:, 1:l);  % First l right singular vectors (responses)
   s         = diag(S);    % Singular values from SVD
-  Fmax      = sum(s(1:min(k,l)));  % Maximum value of the objective function
+  Fmax      = sum(s(1:min(k,h)));  % Maximum value of the objective function
 
   % Latent variables for predictors and responses
   T = X * A;  % Latent variables for X (T) %v [mxp] [pxk]
@@ -82,7 +82,7 @@ function [P, D, Q, muX, muY, E, Fmax, A, B, W] = mox(X, Y, k, l, h)
   e = R - T * W;  % Residuals (Y approximation error) % 
 
   % Singular Value Decomposition of the regression matrix W
-  [Mp, Dp, N] = svd(W);
+  [Mp, Dp, N] = svd(W); %v Mp:[k,k],  Dp[k,l],   N[l,l]
   M           = Mp(:,1:h);         %v [kxh]
   D           = Dp(1:h,1:h);       %v []
   N           = N(:,1:h);          %v []
