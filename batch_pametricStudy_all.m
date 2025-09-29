@@ -9,13 +9,13 @@ d_Y    = eps_y*d_XY;         % co-varying dimensions in Y only
 
 % based on k<=min(p,q). q is set according to it. For p two cases [p>p, p=q].
 % The third case: p<q will violate k<min(p,q).
-q_vec = [20];         % d_X+d_XY; % features in responses (multivariate output array)
-p_vec = [20, 40, 80]; % features in predictor (multivariate input array)
-m_vec = [1]*40;       % no. of observations
-w_amp = 0.5;          % noise level
+q_vec = [20, 34];       % d_X+d_XY; % features in responses (multivariate output array)
+p_vec = [1, 2, 4]*20;   % features in predictor (multivariate input array)
+m_vec = [1, 2, 4]*40;   % no. of observations
+w_amp = 0.5;            % noise level
 
-% standard: [20, 50, 10]
-n_random_seeds = 20;
+% Reproducibility parameters: Repitions, MCreps, CV
+n_random_seeds = 20;  % Random numbers
 n_repetitions  = 50;  % Number of Monte Carlo repetitions over CV
 CV             = 10;  % 10-folsd cross-validation
 
@@ -31,14 +31,9 @@ for im=1:length(m_vec)
             
 						filename = sprintf('parametric_study_m%d_q%d_p%d.xlsx', m, q, p);
 
-            %for iex = iq:length(d_X)
             for iey = 1:length(d_Y)
-                %d_Y = d_Y_vec(iey);
 
-                %for iey = 1:length(d_Y)
 								for iex = 1:length(d_X)
-                    %d_X = d_X_vec(iex);
-
                     % compute idx_[]
                     d      = d_X(iex) + d_XY + d_Y(iey); % total dimensionality of fluctuations
                     idx_X  = (1:d_X(iex));
@@ -64,8 +59,8 @@ for im=1:length(m_vec)
         end         % p_vec
 				fprintf('(p,q)=(%d,%d) \n', p, q)
     end             % q_vec
-		fprintf('m = %d \n', m)
+		fprintf('Done: m = %d \n', m)
 		disp('----------------------------------------------')
 		disp('')
 		disp('')
-end                 % m_vec
+end % m_vec

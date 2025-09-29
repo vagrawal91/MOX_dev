@@ -3,13 +3,16 @@ clearvars -except filename m p q w_amp n_random_seeds n_repetitions CV d_XY ...
     eps_x eps_y d_X d_XY d_Y d idx_X idx_XY idx_Y iex iey im iq ip ...
     m_vec p_vec q_vec
 
-% Choose how X and Y are constructed. 1: in terms of Lambda, 2: Intutive
-ini_opt        = 1;
+% Choose how X and Y are constructed. 
+ini_opt        = 1;   %1: in terms of Lambda, 2: Intutive
 
 % Set the maximum number of components based on the formula
-%max_components = min(p, q);
+max_components = min(p, q);
+r              = min(p, q);
 %max_components = d_Y(iey)+d_XY;
-max_components  = min(d_X(iex)+d_XY, d_Y(iey)+d_XY);
+%max_components = min(d_X(iex)+d_XY, d_Y(iey)+d_XY);
+k              = d_X(iex)+d_XY;
+if (k>r); error('Error: Violated k <= min(p,q).'); end
 
 % Preallocate arrays to store MSEs and other metrics
 MSEmox_all      = zeros(n_random_seeds, max_components);
@@ -26,18 +29,19 @@ for seed = 1:n_random_seeds
         t = randn(m, d); % each t(:, i) is a latent variable
 
         % Generate predictor matrix X using latent variables and random loadings
-        xl = randn(p, d);  % latent
+        xl           = randn(p, d);  % latent
         xl(:, idx_Y) = 0;
 
         % Predictor matrix X
-        X = zscore(t * xl' + randn(m, p) * w_amp);
+				X_org = t * xl' + randn(m, p) * w_amp;
+        X     = zscore(t * xl' + randn(m, p) * w_amp);
 
         % Generate response variables
-        yl = randn(q, d);
+        yl           = randn(q, d);
         yl(:, idx_X) = 0;
 
         % Response matrix Y
-        Y = zscore(t * yl' + randn(m, q) * w_amp);
+        Y            = zscore(t * yl' + randn(m, q) * w_amp);
 
     elseif ini_opt == 2
         %-=-=-= new way of generating predictor and response arrays
@@ -69,16 +73,12 @@ for seed = 1:n_random_seeds
     MSEmox      = zeros(max_components, 1);
     MSEmox_kisl = zeros(max_components, 1);
     for h = 1:max_components
-        k = max(h,d_X(iex)+d_XY);
-        l = max(h,d_Y(iey)+d_XY);
-        %k = d_X(iex)+d_XY;
-        %l = d_Y(iey)+d_XY;
-				[~, ~, ~, ~, ~, ~, ~, MSEcv, Fmaxcv, ~, ~, ~] = moxregress(X, Y, ...
-            k, l, h, 'CV', CV, 'MCReps', n_repetitions);
+				[~, ~, ~, ~, ~, ~, ~, MSEcv, Fmaxcv, ~, ~, ~] = moxregress(X_org, Y, ...
+            k, h, 'CV', CV, 'MCReps', n_repetitions);
         MSEmox(h) = MSEcv/q;
         [~, ~, ~, ~, ~, ~, ~, MSEcv, Fmaxcv, ~, ~, ~] = moxregress(X, Y, ...
-            h, h, h, 'CV', CV, 'MCReps', n_repetitions);
-        MSEmox_kisl(h) = MSEcv / q;
+            h, h, 'CV', CV, 'MCReps', n_repetitions);
+        MSEmox_kisl(h) = MSEcv/q;
     end
     % Store results
     MSEmox_all(seed, :)      = MSEmox';
@@ -89,7 +89,7 @@ for seed = 1:n_random_seeds
     for l = 1:max_components
         % Use the built-in cross-validation function of plsregress
         [~, ~, ~, ~, ~, ~, MSEcv] = plsregress(X, Y, l, 'CV', CV, 'MCReps', n_repetitions);
-        MSEpls(l) = MSEcv(2, end) / q;
+        MSEpls(l) = MSEcv(2, end)/q;
     end
     % Store results
     MSEpls_all(seed, :) = MSEpls';
@@ -104,18 +104,17 @@ for seed = 1:n_random_seeds
         % OLS regression using training data
         X_train = X(trainIdx, :);
         Y_train = Y(trainIdx, :);
-        B_ols = X_train \ Y_train;  % OLS solution
+        B_ols   = X_train \ Y_train;  % OLS solution
 
         % Predict on the test set
-        X_test = X(testIdx, :);
-        Y_test = Y(testIdx, :);
+        X_test     = X(testIdx, :);
+        Y_test     = Y(testIdx, :);
         Y_pred_ols = X_test * B_ols;
 
         % Compute MSE for the test set
         residuals = Y_test - Y_pred_ols;
-        mse_fold = mean(residuals(:).^2);
-
-        MSEols = MSEols + mse_fold / CV;  % Average over the folds
+        mse_fold  = mean(residuals(:).^2);
+        MSEols    = MSEols + mse_fold / CV;  % Average over the folds
     end
     % Store result
     MSEols_all(seed) = MSEols;
@@ -127,13 +126,13 @@ for seed = 1:n_random_seeds
         for i = 1:CV
             % Get training and test indices
             trainIdx = training(cvp, i);
-            testIdx = test(cvp, i);
+            testIdx  = test(cvp, i);
 
             % Split the data
             X_train = X(trainIdx, :);
             Y_train = Y(trainIdx, :);
-            X_test = X(testIdx, :);
-            Y_test = Y(testIdx, :);
+            X_test  = X(testIdx, :);
+            Y_test  = Y(testIdx, :);
 
             % Perform CCA on training data
             [A, B, ~] = canoncorr(X_train, Y_train);
@@ -158,7 +157,7 @@ for seed = 1:n_random_seeds
 
             % Compute MSE for the test set
             residuals = Y_test - Y_pred;
-            mse_fold = mean(residuals(:).^2);
+            mse_fold  = mean(residuals(:).^2);
 
             MSEcv_total = MSEcv_total + mse_fold / CV;
         end

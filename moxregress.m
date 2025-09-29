@@ -1,4 +1,4 @@
-function [P, D, Q, muX, muY, E, Fmax, MSEcv, Fmaxcv, A, B, W] = moxregress(X, Y, k, l, h, varargin)
+function [P, D, Q, muX, muY, E, Fmax, MSEcv, Fmaxcv, A, B, W] = moxregress(X, Y, k, h, varargin)
 % MOXREGRESS Perform MOX regression with optional cross-validation and multiple restarts.
 %
 %   [P, D, Q, muX, muY, E, Fmax, MSEcv, Fmaxcv, A, B, W] = moxregress(X, Y, k, l, 'CV', j, 'MCReps', n)
@@ -104,5 +104,5 @@ MSEcv = mean(MSEcv);  % Average over MCReps
 Fmaxcv = mean(Fmaxcv);  % Average over MCReps
 
 % Perform final MOX on the entire dataset
-[P, D, Q, muX, muY, E, Fmax, A, B, W] = mox(X, Y, k, l, h);
+[P, D, Q, muX, muY, E, Fmax, A, B, W] = mox(X, Y, k, h);
 end

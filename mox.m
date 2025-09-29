@@ -1,4 +1,4 @@
-function [P, D, Q, muX, muY, E, Fmax, A, B, W] = mox(X, Y, k, l, h)
+function [P, D, Q, muX, muY, E, Fmax, A, B, W] = mox(X, Y, k, h)
 % MOX Perform Multivariate Orthogonal Cross-covariance (MOX) Regression.
 %
 %   This function performs MOX regression, which identifies latent variables 
@@ -15,6 +15,7 @@ function [P, D, Q, muX, muY, E, Fmax, A, B, W] = mox(X, Y, k, l, h)
 %            and q is the number of response variables.
 %       k  - Number of predictor latent variables to retain (must satisfy k <= p).
 %       l  - Number of response latent variables to retain (must satisfy l <= q).
+%       h  - Number of shared latent variables determined using CV_MSE
 %
 %   Outputs:
 %       P      - Final orthogonal projection matrix for predictors (p-by-l).
@@ -39,14 +40,13 @@ function [P, D, Q, muX, muY, E, Fmax, A, B, W] = mox(X, Y, k, l, h)
 %   See also: svd, pinv
 
   % Dimensions of the input matrices
-  m = size(X, 1); % number of observations (rows)
-  p = size(X, 2); % number of predictor variables (columns)
-  q = size(Y, 2); % number of response variables (columns)
+  [m,p] = size(X);    % number of observations & predictor variables
+  q     = size(Y, 2); % number of response variables 
 
   % Check if the number of latent variables l is valid
-  if (k > min(p,q))
-    error('Error: Violated k <= min(p,q).');
-  end
+  %if (k > min(p,q))
+  %  error('Error: Violated k <= min(p,q).');
+  %end
   %if (l > k)
   %  error('Error: Violated l <= k.');
   %end
@@ -54,13 +54,12 @@ function [P, D, Q, muX, muY, E, Fmax, A, B, W] = mox(X, Y, k, l, h)
   %  error('Error: Violated h <= l.');
   %end
 
-
   % Center the predictor matrix X
-  muX = mean(X);           % Mean of predictors
+  muX = mean(X);             % Mean of predictors
   X   = X - ones(m, 1)*muX;  % Center predictors
 
   % Center the response matrix Y
-  muY = mean(Y);           % Mean of responses
+  muY = mean(Y);             % Mean of responses
   Y   = Y - ones(m, 1)*muY;  % Center responses
 
   % Cross-covariance matrix between centered X and Y
@@ -69,26 +68,26 @@ function [P, D, Q, muX, muY, E, Fmax, A, B, W] = mox(X, Y, k, l, h)
   % Singular Value Decomposition of the cross-covariance matrix
   [U, S, V] = svd(SigmaXY, 'econ');
   A         = U(:, 1:k);  % First k left singular vectors (predictors)
-  B         = V(:, 1:l);  % First l right singular vectors (responses)
+  B         = V(:, 1:h);  % First h right singular vectors (responses)
   s         = diag(S);    % Singular values from SVD
   Fmax      = sum(s(1:min(k,h)));  % Maximum value of the objective function
 
   % Latent variables for predictors and responses
-  T = X * A;  % Latent variables for X (T) %v [mxp] [pxk]
-  R = Y * B;  % Latent variables for Y (R) %v [mxq] [qxl]
+  T = X * A;  % Latent variables for X (T) %v [mxp][pxk]
+  R = Y * B;  % Latent variables for Y (R) %v [mxq][qxh]
 
   % Regression matrix for latent variables and residual calculation
-  W = pinv(T' * T) * T' * R;  % Solve T*W ≈ R using pseudoinverse %v [kxl]
+  W = pinv(T' * T) * T' * R;  % Solve T*W ≈ R using pseudoinverse %v [kxh]
   e = R - T * W;  % Residuals (Y approximation error) % 
 
   % Singular Value Decomposition of the regression matrix W
-  [Mp, Dp, N] = svd(W); %v Mp:[k,k],  Dp[k,l],   N[l,l]
-  M           = Mp(:,1:h);         %v [kxh]
-  D           = Dp(1:h,1:h);       %v []
-  N           = N(:,1:h);          %v []
+  [Mp, Dp, N] = svd(W);       %v Mp:[k,k], Dp[k,h], N[h,h]
+  M           = Mp(:,1:h);    %v [k,h]
+  D           = Dp(1:h,1:h);  %v [h,h]
+  N           = N(:,1:h);     %v [h,h]
 
   % Adjust orthogonal transformations for final projections
-  P = A * M;  % Final projection matrix for predictors    %v [pxk][kxh]
-  Q = B * N;  % Final projection matrix for responses     %v [qxl][lxh]
-  E = e * N;  % Transformed residuals                     %v []
+  P = A * M;  % Final projection matrix for predictors    %v [p,k][k,h]
+  Q = B * N;  % Final projection matrix for responses     %v [q,h][h,h]
+  E = e * N;  % Transformed residuals
 end
