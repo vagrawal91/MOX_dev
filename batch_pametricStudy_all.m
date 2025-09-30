@@ -15,9 +15,9 @@ m_vec = [1, 2, 4]*40;   % no. of observations
 w_amp = 0.5;            % noise level
 
 % Reproducibility parameters: Repitions, MCreps, CV
-n_random_seeds = 1;  % Random numbers
-n_repetitions  = 2;  % Number of Monte Carlo repetitions over CV
-CV             = 4;  % 10-folsd cross-validation
+n_random_seeds = 20;  % Random numbers
+n_repetitions  = 50;  % Number of Monte Carlo repetitions over CV
+CV             = 10;  % 10-folsd cross-validation
 
 for im=1:length(m_vec)
     m = m_vec(im);
