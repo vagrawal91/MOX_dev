@@ -5,9 +5,9 @@ function [P, D, Q, muX, muY, E, Fmax, MSEcv, Fmaxcv, A, B, W] = moxregress(X, Y,
 %   applies the MOX regression to the data in X and Y with l latent variables.
 %
 %   Inputs:
-%       X  - Predictor matrix (m-by-p), where m is the number of observations 
+%       X  - Predictor matrix (m-by-p), where m is the number of observations
 %            and p is the number of predictor variables.
-%       Y  - Response matrix (m-by-q), where m is the number of observations 
+%       Y  - Response matrix (m-by-q), where m is the number of observations
 %            and q is the number of response variables.
 %       k  - Number of predictor latent variables (must satisfy k <= p).
 %       l  - Number of response latent variables to retain (must satisfy l <= q).
@@ -18,7 +18,7 @@ function [P, D, Q, muX, muY, E, Fmax, MSEcv, Fmaxcv, A, B, W] = moxregress(X, Y,
 %
 %   Outputs:
 %     P       - Final orthogonal projection matrix for predictors (p-by-l).
-%     D       - Diagonal matrix of singular values (l-by-l), representing the 
+%     D       - Diagonal matrix of singular values (l-by-l), representing the
 %     Q       - Final orthogonal projection matrix for responses (q-by-l).
 %     muX     - Mean of the predictors (1-by-p vector).
 %     muY     - Mean of the responses (1-by-q vector).
@@ -68,32 +68,32 @@ for rep = 1:MCReps
     for fold = 1:cvp.NumTestSets
         trainIdx = training(cvp, fold);  % Training indices
         testIdx  = test(cvp, fold);      % Test indices
-        
+
         % Perform MOX on training data
         [P_train, D_train, Q_train, muX_train, muY_train, ~, ~, A_train, ...
             B_train, W_train] = mox(X(trainIdx, :), Y(trainIdx, :), k, h);
-        
+
         % Center the test data using the means from the training set
         X_test = X(testIdx, :) - muX_train;
         Y_test = Y(testIdx, :) - muY_train;
-        
+
         % Predict the responses for the test data
         Y_pred = X_test * P_train * D_train * Q_train';
-        
+
         % Compute residuals for test data and MSE
         residuals = Y_test - Y_pred;
         mse_fold  = mean(residuals(:).^2);
         mse_sum   = mse_sum + mse_fold;
-        
+
         % Calculate cross-covariance for test data
         Sigma_test = X_test' * Y_test;
 
         % Compute Fmax for the test set
         s_fold    = diag(A_train'*Sigma_test*B_train);  % Sum of the first l singular values for the test data
-				Fmax_fold = sum(s_fold(1:min(k,h)));
+        Fmax_fold = sum(s_fold(1:min(k,h)));
         fmax_sum  = fmax_sum + Fmax_fold;
     end
-    
+
     % Average MSE and Fmax over all folds
     MSEcv(rep) = q * mse_sum / CV; % This is to make MSE behave as in PLS regress, which sums across columns instead of taking average
     Fmaxcv(rep) = fmax_sum / CV;
