@@ -47,7 +47,7 @@ end
 
 % Initialize variables for cross-validation
 [m, p] = size(X);
-q = size(Y, 2);
+q      = size(Y, 2);
 
 MSEcv = zeros(MCReps, 1);
 Fmaxcv = zeros(MCReps, 1);
@@ -71,7 +71,7 @@ for rep = 1:MCReps
         
         % Perform MOX on training data
         [P_train, D_train, Q_train, muX_train, muY_train, ~, ~, A_train, ...
-            B_train, W_train] = mox(X(trainIdx, :), Y(trainIdx, :), k, l, h);
+            B_train, W_train] = mox(X(trainIdx, :), Y(trainIdx, :), k, h);
         
         % Center the test data using the means from the training set
         X_test = X(testIdx, :) - muX_train;

@@ -1,18 +1,21 @@
 close all;
 clearvars -except filename m p q w_amp n_random_seeds n_repetitions CV d_XY ...
     eps_x eps_y d_X d_XY d_Y d idx_X idx_XY idx_Y iex iey im iq ip ...
-    m_vec p_vec q_vec
+    m_vec p_vec q_vec fname_nsr
 
-% Choose how X and Y are constructed. 
+% Supress the full rank warning with cancorr
+warning('off', 'stats:canoncorr:NotFullRank');
+
+% Choose how X and Y are constructed.
 ini_opt        = 1;   %1: in terms of Lambda, 2: Intutive
 
 % Set the maximum number of components based on the formula
-max_components = min(p, q);
-r              = min(p, q);
-%max_components = d_Y(iey)+d_XY;
-%max_components = min(d_X(iex)+d_XY, d_Y(iey)+d_XY);
+%max_components = min(p, q);
+%r              = min(p, q);
+max_components = min(d_X(iex)+d_XY, d_Y(iey)+d_XY);
+r              = max_components;
 k              = d_X(iex)+d_XY;
-if (k>r); error('Error: Violated k <= min(p,q).'); end
+%if (k<r); error('Error: Violated k <= min(p,q).'); end
 
 % Preallocate arrays to store MSEs and other metrics
 MSEmox_all      = zeros(n_random_seeds, max_components);
@@ -23,7 +26,7 @@ MSEols_all      = zeros(n_random_seeds, 1);
 
 for seed = 1:n_random_seeds
     rng(seed); % Set seed for reproducibility
-    
+
     if ini_opt == 1
         % Fluctuations of predictors
         t = randn(m, d); % each t(:, i) is a latent variable
@@ -33,15 +36,23 @@ for seed = 1:n_random_seeds
         xl(:, idx_Y) = 0;
 
         % Predictor matrix X
-				X_org = t * xl' + randn(m, p) * w_amp;
+        X_org = t * xl' + randn(m, p) * w_amp;
         X     = zscore(t * xl' + randn(m, p) * w_amp);
 
         % Generate response variables
-        yl           = randn(q, d);
-        yl(:, idx_X) = 0;
+        %yl                    = randn(q, d); %yl with structured noise
+        %yl(:, idx_X)          = 0;
+        yl                    = zeros(q,d);
+        yl_shr                = randn(q,d_XY);
+        yl_struct_noise       = rand(q,d_Y(iey));
+        yl(:,idx_XY)          = yl_shr;
+        yl(:,idx_Y)           = yl_struct_noise;
+        total_variance        = var(yl(:));
+        NSR_dY                = var(yl_struct_noise(:))/var(yl_shr(:));
+        %signal = total_variance - struct_noise_variance;
 
         % Response matrix Y
-        Y            = zscore(t * yl' + randn(m, q) * w_amp);
+        Y                     = zscore(t * yl' + randn(m, q) * w_amp);
 
     elseif ini_opt == 2
         %-=-=-= new way of generating predictor and response arrays
@@ -49,31 +60,31 @@ for seed = 1:n_random_seeds
         Z_X  = randn(m, d_X);       % latent for X only
         Z_Y  = randn(m, d_Y);       % latent for Y only
         Z_XY = randn(m, d_XY);      % shared latent
-        
+
         % Generate random weights
         W_X    = 2 * rand(d_X, p);
         W_Y    = 2 * rand(d_Y, q);
         W_XY_X = 2 * rand(d_XY, p);
         W_XY_Y = 2 * rand(d_XY, q);
-    
+
         % Generate Gaussian noise
         noise_X = w_amp * randn(m, p);
         noise_Y = w_amp * randn(m, q);
-        
+
         % Construct observed data
         X = Z_X*W_X + Z_XY*W_XY_X + noise_X;
         Y = Z_Y*W_Y + Z_XY*W_XY_Y + noise_Y;
-    
+
         % Standardization
         X = zscore(X);
         Y = zscore(Y);
     end
-    
+
     % --- MOX Regression ---
     MSEmox      = zeros(max_components, 1);
     MSEmox_kisl = zeros(max_components, 1);
     for h = 1:max_components
-				[~, ~, ~, ~, ~, ~, ~, MSEcv, Fmaxcv, ~, ~, ~] = moxregress(X_org, Y, ...
+        [~, ~, ~, ~, ~, ~, ~, MSEcv, Fmaxcv, ~, ~, ~] = moxregress(X_org, Y, ...
             k, h, 'CV', CV, 'MCReps', n_repetitions);
         MSEmox(h) = MSEcv/q;
         [~, ~, ~, ~, ~, ~, ~, MSEcv, Fmaxcv, ~, ~, ~] = moxregress(X, Y, ...
@@ -135,7 +146,7 @@ for seed = 1:n_random_seeds
             Y_test  = Y(testIdx, :);
 
             % Perform CCA on training data
-            [A, B, ~] = canoncorr(X_train, Y_train);
+            [A, B, ~] = canoncorr(X_train, Y_train); 
 
             % Keep only the first 'l' components
             A = A(:, 1:l);
@@ -165,13 +176,13 @@ for seed = 1:n_random_seeds
     end
     % Store results
     MSEcca_all(seed, :) = MSEcca';
-		if mod(seed,5) == 0
-			fprintf('i_repetition_seed:  %4d \n', seed);
-		end
+    if mod(seed,5) == 0
+        fprintf('\n i_repetition_seed:  %4d', seed);
+    end
 end
 
 % Compute mean MSEs across all random seeds
-MSEmox_mean			 = mean(MSEmox_all, 1);
+MSEmox_mean	     = mean(MSEmox_all, 1);
 MSEmox_kisl_mean = mean(MSEmox_kisl_all, 1);
 MSEpls_mean      = mean(MSEpls_all, 1);
 MSEcca_mean      = mean(MSEcca_all, 1);
@@ -183,14 +194,14 @@ MSEols_mean      = mean(MSEols_all);
 % MSEpls_std = std(MSEpls_all, 0, 1);
 % MSEcca_std = std(MSEcca_all, 0, 1);
 % MSEols_std = std(MSEols_all);
-% 
+%
 % % Prepare data for plotting OLS with error bars
 % % Replicate the mean and standard deviation across the x-axis
 % ols_x = [0, max_components]; % x-axis range
 % ols_y = [MSEols_mean, MSEols_mean]; % Mean MSE replicated
 % ols_y_upper = ols_y + MSEols_std; % Upper bound (mean + std)
 % ols_y_lower = ols_y - MSEols_std; % Lower bound (mean - std)
-% 
+%
 % % Plot the average cross-validated MSE as a function of the number of components
 % figure(1);
 % % OLS (horizontal line)
@@ -213,8 +224,3 @@ MSEols_mean      = mean(MSEols_all);
 % grid on; set(gca,'FontSize', 28);  set(gcf, 'Color', 'w');
 % set(gcf, 'units', 'normalized', 'outerposition', [0 0 1 1]);
 % hold off;
-
-% MSE levels
-%MSE_all = MSEvalues_all(d_X, d_XY, MSEmox_mean, MSEmox_kisl_mean, ...
-%                    MSEpls_mean, MSEcca_mean, MSEols_mean);
-%disp(MSE_all);

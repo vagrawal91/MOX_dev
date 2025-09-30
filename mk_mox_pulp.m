@@ -17,11 +17,8 @@ for k=1:r
   for l=1:min(k, r)
     [P, D, Q, muX, muY, E, Fmax, MSEcv, Fmaxcv, A, B, W] = moxregress(X, Y, k, l, 'CV', 10, 'MCReps', 10);
     MSE(k,l) = MSEcv / q;
-  end;
-end;
-%v two questions:
-%v 1. Why MSE (not MSEcv) is being computed in two loops
-
+  end
+end
 
 figure(10);
 bar3(MSE);
@@ -45,4 +42,3 @@ fsize = [12 17]; % cm
 set(gcf, 'PaperPositionMode', 'manual', 'PaperUnits', 'centimeters', 'PaperPosition', [0 0 fsize], 'PaperSize', fsize);
 set(gcf, 'Units', 'centimeters', 'Position', [0 0 fsize]);
 %exportgraphics(gcf, 'img/mox_pulp.pdf', 'ContentType', 'vector');
-
