@@ -51,8 +51,7 @@ for seed = 1:n_random_seeds
     MSEmox      = zeros(max_components, 1);
     MSEmox_kisl = zeros(max_components, 1);
     for h = 1:max_components
-        % if max_component = min(p,q), and min(p,q) > max(Dx,Dy)
-        k = max(h, d_X(iex) + d_XY);
+        k = max(h, d_X(iex) + d_XY); % if max_comp = min(p,q) is selected
         [~, ~, ~, ~, ~, ~, ~, MSEcv, Fmaxcv, ~, ~, ~] = moxregress(X_org, Y, ...
             k, h, 'CV', CV, 'MCReps', n_repetitions);
         MSEmox(h) = MSEcv/q;
