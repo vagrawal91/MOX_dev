@@ -7,63 +7,66 @@ clearvars -except filename m p q w_amp n_random_seeds n_repetitions CV d_XY ...
 warning('off', 'stats:canoncorr:NotFullRank');
 
 %--- For synthetic Dataset: Generate latent variables for predictors
-%- Number of samples (m), predictors (p) and responses (q)
-m      = 40;
-p      = 800;
-q      = 10;
-%- Noise level
-w_amp  = 0.5;
-%- Define LVs in each space
-d_XY   = 3;                % co-varying dimensions shared by X and Y
-d_X    = d_XY*2+1;         % co-varying dimensions in X only
-d_Y    = d_XY*0+1;         % co-varying dimensions in Y only
-d      = d_X + d_XY + d_Y; % total dimensionality of fluctuations
-idx_X  = (1:d_X);
-idx_XY = d_X + (1:d_XY);
-idx_Y  = d_X + d_XY + (1:d_Y);
-Dx     = d_X+d_XY;
-k      = Dx;
-%- Fluctuations of predictors
-t            = randn(m, d); % each t(:, i) is a latent variable
-% Generate predictor matrix X using latent variables and random loadings
-xl           = randn(p, d);
-xl(:, idx_Y) = 0;
-X            = zscore(t * xl' + randn(m, p) * w_amp);
-% Generate response variables
-yl           = randn(q, d); %yl with structured noise
-yl(:, idx_X) = 0;
-Y            = zscore(t * yl' + randn(m, q) * w_amp);
-file_name    = sprintf('synthetic_m%d_p%d_q%d_dxy%d_dx%d_dy%d', ...
-    m,p,q,d_XY,d_X,d_Y);
+% %- Number of samples (m), predictors (p) and responses (q)
+% m      = 40;
+% p      = 800;
+% q      = 10;
+% %- Noise level
+% w_amp  = 0.5;
+% %- Define LVs in each space
+% d_XY   = 3;                % co-varying dimensions shared by X and Y
+% d_X    = d_XY*2+1;         % co-varying dimensions in X only
+% d_Y    = d_XY*0+1;         % co-varying dimensions in Y only
+% d      = d_X + d_XY + d_Y; % total dimensionality of fluctuations
+% idx_X  = (1:d_X);
+% idx_XY = d_X + (1:d_XY);
+% idx_Y  = d_X + d_XY + (1:d_Y);
+% %- Fluctuations of predictors
+% t            = randn(m, d); % each t(:, i) is a latent variable
+% % Generate predictor matrix X using latent variables and random loadings
+% xl           = randn(p, d);
+% xl(:, idx_Y) = 0;
+% X            = zscore(t * xl' + randn(m, p) * w_amp);
+% % Generate response variables
+% yl           = randn(q, d); %yl with structured noise
+% yl(:, idx_X) = 0;
+% Y            = zscore(t * yl' + randn(m, q) * w_amp);
+% file_name    = sprintf('synthetic_m%d_p%d_q%d_dxy%d_dx%d_dy%d', ...
+%     m,p,q,d_XY,d_X,d_Y);
+% Dx             = d_X+d_XY;
+% max_components = min(p, q);
+% r              = max_components;
+% k              = Dx;
 
 %--- For real-world examples
-% %-- Corn dataset
+%-- Corn dataset
 % load('data/dataset_corn.mat')
 % [m, p]=size(X); q=size(Y, 2);
 % file_name = sprintf('corn_m%d_p%d_q%d', m,p,q);
-% % here, Dx = q;
+% here, Dx = q;
 %-- pulp dataset
 % load('data/milldata_kvarnsveden64.mat')
 % X     = X2z;
 % Y     = X3z;
 % [m, p]= size(X); q=size(Y, 2);
 % file_name = sprintf('pulp_m%d_p%d_q%d', m,p,q);
-% % Dx    = q; %[4 93% var, 16 100% var, so Dx=q=9]
+% Dx    = q; %[4 93% var, 16 100% var, so Dx=q=9]
 %-- Gene dataset
-% load('data/genes.mat')
-% [m, p] = size(X); q=size(Y, 2);
-% file_name = sprintf('gene_m%d_p%d_q%d', m,p,q);
-% % Dx = q; %[21 w 90%, but q=10]
+load('data/genes.mat')
+[m, p] = size(X); q=size(Y, 2);
+file_name = sprintf('gene_m%d_p%d_q%d', m,p,q);
+% Dx = q; %[21 w 90%, but q=10]
 
 %--- If real-life examples are used
-% %- Set maximum_component or h
-% % max_components= min(d_X+d_XY, d_Y+d_XY);
-% max_components = min(p, q);
-% r              = max_components;
-% %- Find total LVs in X
-% [Dx, cvarX] = determine_optimal_svd_components(X);
-% %- sanity check
-% k = sanity_check(Dx,cvarX,q,r);
+%- Components in X
+[Dx, cvarX] = determine_optimal_svd_components(X);
+%- Set maximum_component or h
+% max_components= min(d_X+d_XY, d_Y+d_XY);
+max_components = min(p, q);
+r              = max_components;
+%- sanity check
+k     = sanity_check(Dx,cvarX,q,r);
+k_sck = k;
 
 %--- Reproducibility parameters: Repitions, MCreps, CV
 n_random_seeds = 20;  % Random numbers
@@ -84,7 +87,7 @@ for seed = 1:n_random_seeds
     MSEmox      = zeros(max_components, 1);
     MSEmox_kisl = zeros(max_components, 1);
     for h = 1:max_components
-        k = max(h, Dx); % For h=min(p,q) > k, mox_kh --> mox_hh
+        k = max(h, k_sck); % For h=min(p,q) > k, mox_kh --> mox_hh
         [~, ~, ~, ~, ~, ~, ~, MSEcv, Fmaxcv, ~, ~, ~] = moxregress(X, Y, ...
             k, h, 'CV', CV, 'MCReps', n_repetitions);
         MSEmox(h) = MSEcv/q;

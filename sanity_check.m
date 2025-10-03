@@ -16,7 +16,7 @@ if Dx > q
     warning('sanity_check: Dx adjusted with Dx=q. Variance captured: %.2f', cvarX(Dx)*100)
     if ceil(cvarX(Dx)*100) < 95
         warning(['Size of q is not satisfactory to capture the sufficient variance in X.' ...
-         ' Hence, P and therefore, DQ might not be reliable.'])
+         ' Hence, P and therefore, DQ may not be reliable.'])
     end
 end
 
