@@ -1,1 +1,1 @@
-matlab -nodesktop -nodisplay -nosplash < benchmark_tmp.m > my.log 2>&1 &
+matlab -nodesktop -nodisplay -nosplash < all_benchmarks.m > my.log 2>&1 &

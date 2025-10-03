@@ -1,4 +1,4 @@
-clear; clc; close all;
+clear; close all; clc;
 clearvars -except filename m p q w_amp n_random_seeds n_repetitions CV d_XY ...
     eps_x eps_y d_X d_Y d idx_X idx_XY idx_Y iex iey im iq ip ...
     m_vec p_vec q_vec fname_nsr
@@ -7,52 +7,65 @@ clearvars -except filename m p q w_amp n_random_seeds n_repetitions CV d_XY ...
 warning('off', 'stats:canoncorr:NotFullRank');
 
 %--- For synthetic Dataset: Generate latent variables for predictors
-% %- Number of samples (m), predictors (p) and responses (q)
-% m      = 40;
-% p      = 20;
-% q      = 20;
-% %- Noise level
-% w_amp  = 0.5;
-% %- Define LVs in each space
-% d_XY   = 2;                % co-varying dimensions shared by X and Y
-% d_Y    = d_XY*8;           % co-varying dimensions in Y only
-% d_X    = d_XY*8;           % co-varying dimensions in X only
-% d      = d_X + d_XY + d_Y; % total dimensionality of fluctuations
-% Dx     = d_X(iex)+d_XY;
-% idx_X  = (1:d_X);
-% idx_XY = d_X + (1:d_XY);
-% idx_Y  = d_X + d_XY + (1:d_Y);
+%- Number of samples (m), predictors (p) and responses (q)
+m      = 40;
+p      = 800;
+q      = 10;
+%- Noise level
+w_amp  = 0.5;
+%- Define LVs in each space
+d_XY   = 3;                % co-varying dimensions shared by X and Y
+d_X    = d_XY*2+1;         % co-varying dimensions in X only
+d_Y    = d_XY*0+1;         % co-varying dimensions in Y only
+d      = d_X + d_XY + d_Y; % total dimensionality of fluctuations
+idx_X  = (1:d_X);
+idx_XY = d_X + (1:d_XY);
+idx_Y  = d_X + d_XY + (1:d_Y);
+Dx     = d_X+d_XY;
+k      = Dx;
+%- Fluctuations of predictors
+t            = randn(m, d); % each t(:, i) is a latent variable
+% Generate predictor matrix X using latent variables and random loadings
+xl           = randn(p, d);
+xl(:, idx_Y) = 0;
+X            = zscore(t * xl' + randn(m, p) * w_amp);
+% Generate response variables
+yl           = randn(q, d); %yl with structured noise
+yl(:, idx_X) = 0;
+Y            = zscore(t * yl' + randn(m, q) * w_amp);
+file_name    = sprintf('synthetic_m%d_p%d_q%d_dxy%d_dx%d_dy%d', ...
+    m,p,q,d_XY,d_X,d_Y);
 
 %--- For real-world examples
-% %- Corn dataset
+% %-- Corn dataset
 % load('data/dataset_corn.mat')
-% Dx = 4;         % Maxium LVs in X for corn dataset
-%- pulp dataset
+% [m, p]=size(X); q=size(Y, 2);
+% file_name = sprintf('corn_m%d_p%d_q%d', m,p,q);
+% % here, Dx = q;
+%-- pulp dataset
 % load('data/milldata_kvarnsveden64.mat')
-% %idxX = [1 2 3 4 5 6 7 9 10 12 13 15 16];      % 8 11 14 and 17 excluded
-% %idxX = [1 5 6 7 8 9 10 11 12 13 14 15 16 17]; % 2 3 and excluded
-% %idxY = [1 2 3 4 5 6 7 8];                     % 9 excluded
-% %X    = X2z(:,idxX);
-% %Y    = X3z(:,idxY);
 % X     = X2z;
 % Y     = X3z;
-% Dx    = 5;             % [min=5, max=9=q] LVs in X for pulp dataset
-%- Gene dataset
-load('data/genes.mat')
-Dx = 10; %[min=2, max=7]
+% [m, p]= size(X); q=size(Y, 2);
+% file_name = sprintf('pulp_m%d_p%d_q%d', m,p,q);
+% % Dx    = q; %[4 93% var, 16 100% var, so Dx=q=9]
+%-- Gene dataset
+% load('data/genes.mat')
+% [m, p] = size(X); q=size(Y, 2);
+% file_name = sprintf('gene_m%d_p%d_q%d', m,p,q);
+% % Dx = q; %[21 w 90%, but q=10]
 
-%- Number of samples (m), predictors (p) and responses (q)
-[m, p] = size(X);
-q      = size(Y, 2);
+%--- If real-life examples are used
+% %- Set maximum_component or h
+% % max_components= min(d_X+d_XY, d_Y+d_XY);
+% max_components = min(p, q);
+% r              = max_components;
+% %- Find total LVs in X
+% [Dx, cvarX] = determine_optimal_svd_components(X);
+% %- sanity check
+% k = sanity_check(Dx,cvarX,q,r);
 
-%- Set k and r
-max_components = min(p, q);
-%max_components= min(d_X(iex)+d_XY, d_Y(iey)+d_XY);
-r              = max_components;
-k              = Dx;
-if (k>r); error('Error: Violated k <= min(p,q).');  end
-
-% Reproducibility parameters: Repitions, MCreps, CV
+%--- Reproducibility parameters: Repitions, MCreps, CV
 n_random_seeds = 20;  % Random numbers
 n_repetitions  = 50;  % Number of Monte Carlo repetitions over CV
 CV             = 10;  % 10-folsd cross-validation
@@ -71,8 +84,7 @@ for seed = 1:n_random_seeds
     MSEmox      = zeros(max_components, 1);
     MSEmox_kisl = zeros(max_components, 1);
     for h = 1:max_components
-        % if max_component = min(p,q), and min(p,q) > max(Dx,Dy)
-        k = max(h, Dx);
+        k = max(h, Dx); % For h=min(p,q) > k, mox_kh --> mox_hh
         [~, ~, ~, ~, ~, ~, ~, MSEcv, Fmaxcv, ~, ~, ~] = moxregress(X, Y, ...
             k, h, 'CV', CV, 'MCReps', n_repetitions);
         MSEmox(h) = MSEcv/q;
@@ -165,13 +177,13 @@ for seed = 1:n_random_seeds
     end
     % Store results
     MSEcca_all(seed, :) = MSEcca';
-    
+
     % print repetition seed
     if mod(seed,5) == 0
         fprintf('\n i_repetition_seed:  %4d', seed);
     end
 end
-fprintf('\n');
+fprintf('\n\n');
 
 % Compute mean MSEs across all random seeds
 MSEmox_mean	     = mean(MSEmox_all, 1);
@@ -224,5 +236,5 @@ ylim([0.0 * min([MSEmox_mean, MSEpls_mean, MSEols_mean]), ...
 grid on; set(gca,'FontSize', 24);  set(gcf, 'Color', 'w');
 set(gcf, 'units', 'normalized', 'outerposition', [0 0 1 1]);
 hold off;
-saveas(gcf,[ '03_gene_MSE']); close all;
-save('03_results_geneDataset_vishal.mat');
+saveas(gcf, ['MSE_',file_name,'.fig']); close all;
+save(['Dataset_',file_name,'.mat']);
